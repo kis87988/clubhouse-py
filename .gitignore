@@ -11,3 +11,4 @@ build/
 dist/
 clubhouse_py.egg-info/
 env/
+*.dmp
