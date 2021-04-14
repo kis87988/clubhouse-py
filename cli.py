@@ -52,7 +52,7 @@ def set_interval(interval):
         return wrap
     return decorator
 
-def write_config(user_id, user_token, user_device, filename='setting.ini'):
+def write_config(user_id, user_token, user_device, user_phone_number, filename='setting.ini'):
     """ (str, str, str, str) -> bool
 
     Write Config. return True on successful file write
@@ -62,6 +62,7 @@ def write_config(user_id, user_token, user_device, filename='setting.ini'):
         "user_device": user_device,
         "user_id": user_id,
         "user_token": user_token,
+        "user_phone_number": user_phone_number
     }
     with open(filename, 'w') as config_file:
         config.write(config_file)
@@ -298,6 +299,7 @@ def user_authentication(client:Clubhouse):
     """
 
     result = None
+    user_phone_number = None
     while True:
         user_phone_number = input("[.] Please enter your phone number. (+818043217654) > ")
         result = client.start_phone_number_auth(user_phone_number)
@@ -318,7 +320,7 @@ def user_authentication(client:Clubhouse):
     user_id = result['user_profile']['user_id']
     user_token = result['auth_token']
     user_device = client.HEADERS.get("CH-DeviceId")
-    write_config(user_id, user_token, user_device)
+    write_config(user_id, user_token, user_device, user_phone_number)
 
     print("[.] Writing configuration file complete.")
 
