@@ -250,8 +250,8 @@ def chat_main(client:Clubhouse, direct_join_channel_name: str = None):
         console = Console()
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("user_id", style="cyan", justify="right")
-        table.add_column("username")
         table.add_column("name")
+        table.add_column("username")
         table.add_column("is_speaker")
         table.add_column("is_moderator")
         users = channel_info['users']
