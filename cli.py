@@ -10,6 +10,7 @@ import os
 import sys
 import threading
 import configparser
+import argparse
 import time
 import keyboard
 from rich.table import Table
@@ -160,7 +161,7 @@ def print_channel_list(client:Clubhouse, max_limit=20):
         )
     console.print(table)
 
-def chat_main(client:Clubhouse):
+def chat_main(client:Clubhouse, direct_join_channel_name: str = None):
     """ (Clubhouse) -> NoneType
 
     Main function for chat
@@ -222,8 +223,11 @@ def chat_main(client:Clubhouse):
         # Choose which channel to enter.
         # Join the talk on success.
         user_id = client.HEADERS.get("CH-UserID")
-        print_channel_list(client, max_limit)
-        channel_name = input("[.] Enter channel_name: ")
+        if direct_join_channel_name:
+            channel_name = direct_join_channel_name
+        else:
+            print_channel_list(client, max_limit)
+            channel_name = input("[.] Enter channel_name: ")
         channel_info = client.join_channel(channel_name)
         if not channel_info['success']:
             # Check if this channel_name was taken from the link
@@ -276,7 +280,7 @@ def chat_main(client:Clubhouse):
         # Add raise_hands key bindings for speaker permission
         # Sorry for the bad quality
         if not channel_speaker_permission:
-
+            _hotkey = None
             if sys.platform == "darwin": # OSX
                 _hotkey = "9"
             elif sys.platform == "win32": # Windows
@@ -300,6 +304,8 @@ def chat_main(client:Clubhouse):
         if RTC:
             RTC.leaveChannel()
         client.leave_channel(channel_name)
+        if direct_join_channel_name:
+            break
 
 def user_authentication(client:Clubhouse):
     """ (Clubhouse) -> NoneType
@@ -348,13 +354,13 @@ def user_authentication(client:Clubhouse):
 
     return
 
-def main():
+def main(args):
     """
     Initialize required configurations, start with some basic stuff.
     """
     # Initialize configuration
     client = None
-    user_config = read_config()
+    user_config = read_config(filename=args.config_file)
     user_id = user_config.get('user_id')
     user_token = user_config.get('user_token')
     user_device = user_config.get('user_device')
@@ -378,15 +384,24 @@ def main():
         if not _check['user_profile'].get("username"):
             process_onboarding(client)
 
-        chat_main(client)
+        chat_main(client, direct_join_channel_name=args.channel_name)
     else:
         client = Clubhouse()
         user_authentication(client)
-        main()
+        main(args)
 
 if __name__ == "__main__":
     try:
-        main()
+        # Read CLI args
+        parser = argparse.ArgumentParser(description="Clubhouse CLI")
+        parser.add_argument("-d", "--debug", action='store_true', default=False,
+                            help="Enable debug messages.")
+        parser.add_argument("--config_file", type=str, default="setting.ini",
+                            help="setup.ini format file path")
+        parser.add_argument("--channel_name", type=str, default=None,
+                            help="direct join channel name")
+        args = parser.parse_args()
+        main(args)
     except Exception:
         # Remove dump files on exit.
         file_list = os.listdir(".")
