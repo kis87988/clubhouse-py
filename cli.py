@@ -12,6 +12,7 @@ import threading
 import configparser
 import argparse
 import time
+import random
 import keyboard
 from rich.table import Table
 from rich.console import Console
@@ -34,23 +35,23 @@ try:
 except ImportError:
     RTC = None
 
-def set_interval(interval):
+def set_interval_thread(interval):
     """ (int) -> decorator
 
     set_interval decorator
     """
     def decorator(func):
         def wrap(*args, **kwargs):
-            stopped = threading.Event()
+            stopped_flag = threading.Event()
             def loop():
-                while not stopped.wait(interval):
+                while not stopped_flag.wait(interval):
                     ret = func(*args, **kwargs)
                     if not ret:
                         break
             thread = threading.Thread(target=loop)
             thread.daemon = True
             thread.start()
-            return stopped
+            return thread, stopped_flag
         return wrap
     return decorator
 
@@ -168,8 +169,11 @@ def chat_main(client:Clubhouse, direct_join_channel_name: str = None):
     """
     max_limit = 20
     channel_speaker_permission = False
-    _wait_func = None
-    _ping_func = None
+    _wait_stopped_flag = None
+    _ping_stopped_flag = None
+    _ping_thread = None
+    _wait_thread = None
+
 
     def _request_speaker_permission(client:Clubhouse, channel_name, user_id):
         """ (str) -> bool
@@ -178,10 +182,10 @@ def chat_main(client:Clubhouse, direct_join_channel_name: str = None):
         """
         if not channel_speaker_permission:
             client.audience_reply(channel_name, True, False)
-            _wait_func = _wait_speaker_permission(client, channel_name, user_id)
+            _wait_thread, _wait_stopped_flag = _wait_speaker_permission(client, channel_name, user_id)
             print("[/] You've raised your hand. Wait for the moderator to give you the permission.")
 
-    @set_interval(30)
+    @set_interval_thread(30)
     def _ping_keep_alive(client:Clubhouse, channel_name):
         """ (str) -> bool
 
@@ -193,12 +197,16 @@ def chat_main(client:Clubhouse, direct_join_channel_name: str = None):
                 client.active_ping(channel_name)
                 break
             except:
-                wait_time = 10 # s
+                wait_time = random.randint(10, 15) # s
                 print(f"Clubhouse active ping test fail. wait {wait_time} to retry, this is {i+1} fail(s)")
                 time.sleep(wait_time)
+        else:
+            error_message = f"active ping test fail after {retry_number} tries"
+            raise RuntimeError(error_message)
+
         return True
 
-    @set_interval(10)
+    @set_interval_thread(10)
     def _wait_speaker_permission(client:Clubhouse, channel_name, user_id):
         """ (str) -> bool
 
@@ -274,8 +282,8 @@ def chat_main(client:Clubhouse, direct_join_channel_name: str = None):
 
         # Activate pinging
         client.active_ping(channel_name)
-        _ping_func = _ping_keep_alive(client, channel_name)
-        _wait_func = None
+        _ping_thread, _ping_stopped_flag = _ping_keep_alive(client, channel_name)
+        _wait_stopped_flag = None
 
         # Add raise_hands key bindings for speaker permission
         # Sorry for the bad quality
@@ -297,10 +305,12 @@ def chat_main(client:Clubhouse, direct_join_channel_name: str = None):
         keyboard.unhook_all()
 
         # Safely leave the channel upon quitting the channel.
-        if _ping_func:
-            _ping_func.set()
-        if _wait_func:
-            _wait_func.set()
+        if _ping_stopped_flag:
+            _ping_stopped_flag.set()
+            _ping_thread.join()
+        if _wait_stopped_flag:
+            _wait_stopped_flag.set()
+            _wait_thread.join()
         if RTC:
             RTC.leaveChannel()
         client.leave_channel(channel_name)
