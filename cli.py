@@ -78,7 +78,7 @@ def read_config(filename='setting.ini'):
         return dict(config['Account'])
     return dict()
 
-def process_onboarding(client):
+def process_onboarding(client: Clubhouse):
     """ (Clubhouse) -> NoneType
 
     This is to process the initial setup for the first time user.
@@ -130,7 +130,7 @@ def process_onboarding(client):
         print("    Try registering by real device if this process pops again.")
         break
 
-def print_channel_list(client, max_limit=20):
+def print_channel_list(client:Clubhouse, max_limit=20):
     """ (Clubhouse) -> NoneType
 
     Print list of channels
@@ -158,7 +158,7 @@ def print_channel_list(client, max_limit=20):
         )
     console.print(table)
 
-def chat_main(client):
+def chat_main(client:Clubhouse):
     """ (Clubhouse) -> NoneType
 
     Main function for chat
@@ -168,7 +168,7 @@ def chat_main(client):
     _wait_func = None
     _ping_func = None
 
-    def _request_speaker_permission(client, channel_name, user_id):
+    def _request_speaker_permission(client:Clubhouse, channel_name, user_id):
         """ (str) -> bool
 
         Raise hands for permissions
@@ -179,7 +179,7 @@ def chat_main(client):
             print("[/] You've raised your hand. Wait for the moderator to give you the permission.")
 
     @set_interval(30)
-    def _ping_keep_alive(client, channel_name):
+    def _ping_keep_alive(client:Clubhouse, channel_name):
         """ (str) -> bool
 
         Continue to ping alive every 30 seconds.
@@ -188,7 +188,7 @@ def chat_main(client):
         return True
 
     @set_interval(10)
-    def _wait_speaker_permission(client, channel_name, user_id):
+    def _wait_speaker_permission(client:Clubhouse, channel_name, user_id):
         """ (str) -> bool
 
         Function that runs when you've requested for a voice permission.
@@ -291,7 +291,7 @@ def chat_main(client):
             RTC.leaveChannel()
         client.leave_channel(channel_name)
 
-def user_authentication(client):
+def user_authentication(client:Clubhouse):
     """ (Clubhouse) -> NoneType
 
     Just for authenticating the user.
