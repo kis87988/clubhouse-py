@@ -10,6 +10,7 @@ import os
 import sys
 import threading
 import configparser
+import time
 import keyboard
 from rich.table import Table
 from rich.console import Console
@@ -185,7 +186,15 @@ def chat_main(client:Clubhouse):
 
         Continue to ping alive every 30 seconds.
         """
-        client.active_ping(channel_name)
+        retry_number = 3
+        for i in range(retry_number):
+            try:
+                client.active_ping(channel_name)
+                break
+            except:
+                wait_time = 10 # s
+                print(f"Clubhouse active ping test fail. wait {wait_time} to retry, this is {i+1} fail(s)")
+                time.sleep(wait_time)
         return True
 
     @set_interval(10)
